@@ -2,8 +2,14 @@ package parser;
 
 import java.util.*;
 
+/*
+ * CFG: context-free grammar
+ */
 public class CFG {
+	// productionsT: stores all production rules whose right side is a terminal
 	HashMap<String, ArrayList<ProductionT>> productionsT = new HashMap<String, ArrayList<ProductionT>>();
+	
+	// productionsN : stores all production rules whose right side are two nonterminals
 	HashMap<String, ArrayList<ProductionN>> productionsN = new HashMap<String, ArrayList<ProductionN>>();
 	ArrayList<String> nonTerminals = new ArrayList<String>();
 

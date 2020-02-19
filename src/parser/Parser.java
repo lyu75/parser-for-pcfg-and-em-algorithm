@@ -4,6 +4,8 @@ import java.util.*;
 import java.io.*;
 
 public class Parser {
+	
+	// print an array of strings
 	public static void print(String[] strs) {
 		for (int i=0;i<strs.length;i++) {
 			System.out.print(strs[i]+", ");
@@ -53,7 +55,8 @@ public class Parser {
 	}
 	
 	// the inside algorithm
-	public void inside(CFG g, String str) {
+	// returns a 3D array of floats storing all the alpha values. 
+	public float[][][] inside(CFG g, String str) {
 		int l = str.length();
 		int m = g.nonTerminals.size();
 		float[][][] alpha = new float[l][l][m];
@@ -74,13 +77,13 @@ public class Parser {
 							for(int k=i; k<=j-1; k++) {
 								alpha[i][j][v] += alpha[i][k][y] * alpha[k+1][j][z] * g.t(g.nonTerminals.get(v), g.nonTerminals.get(y), g.nonTerminals.get(z));
 								
-								if(alpha[i][k][y]!=0 || alpha[k+1][j][z]!=0 || g.t(g.nonTerminals.get(v), g.nonTerminals.get(y), g.nonTerminals.get(z))!=0) {
-									System.out.printf("%3d %3d %3s %10.5f %n", i, k, g.nonTerminals.get(y), alpha[i][k][y]);
-									System.out.printf("%3d %3d %3s %10.5f %n", k+1, j, g.nonTerminals.get(z), alpha[k+1][j][z]);
-									System.out.printf("%3d %3d %3s %10.5f %n", v, y, z, g.t(g.nonTerminals.get(v), g.nonTerminals.get(y), g.nonTerminals.get(z)));
-									System.out.printf("%3d %3d %3s %10.5f %n", i, j, g.nonTerminals.get(v), alpha[i][j][v]);
-									System.out.println("----------------------------");									
-								}
+//								if(alpha[i][k][y]!=0 || alpha[k+1][j][z]!=0 || g.t(g.nonTerminals.get(v), g.nonTerminals.get(y), g.nonTerminals.get(z))!=0) {
+//									System.out.printf("%3d %3d %3s %10.5f %n", i, k, g.nonTerminals.get(y), alpha[i][k][y]);
+//									System.out.printf("%3d %3d %3s %10.5f %n", k+1, j, g.nonTerminals.get(z), alpha[k+1][j][z]);
+//									System.out.printf("%3d %3d %3s %10.5f %n", v, y, z, g.t(g.nonTerminals.get(v), g.nonTerminals.get(y), g.nonTerminals.get(z)));
+//									System.out.printf("%3d %3d %3s %10.5f %n", i, j, g.nonTerminals.get(v), alpha[i][j][v]);
+//									System.out.println("----------------------------");									
+//								}
 							}
 						}
 					}
@@ -88,8 +91,66 @@ public class Parser {
 			}
 		}
 		
-		print3DArr(alpha, g);
+//		print3DArr(alpha, g);
+		return alpha;
 	}
+	
+	public float[][][] outside(CFG g, String str) {
+		int l = str.length();
+		int m = g.nonTerminals.size();
+		float[][][] beta = new float[l][l][m];
+		float[][][] alpha = inside(g, str);
+		
+		// initialization:
+		for(int v=0; v<m; v++) {
+			if(g.nonTerminals.get(v).equals("S")) {
+				beta[0][l-1][v] = 1;				
+			}else {
+				beta[0][l-1][v]	= 0;
+			}
+		}
+
+		// interation:
+		for(int i=0; i<l; i++) {
+			for(int j=l-1; j>=i; j--) {
+				for(int v=0; v<m; v++) {
+					// calculate beta:
+					
+					// for each pair of (y, z)
+					for(int y=0; y<m; y++) {
+						for (int z=0; z<m; z++) {
+							
+							// k1 goes from 0 to i-1; inclusive
+							// k2 goes from j+1 to l-1; inclusive 
+							for(int k1=0; k1<i; k1++) {
+								if(i>0) {
+									beta[i][j][v] += alpha[k1][i-1][z]*beta[k1][j][y]*g.t(g.nonTerminals.get(y), g.nonTerminals.get(z), g.nonTerminals.get(v));
+								}
+							}
+							for(int k2=j+1; k2<l; k2++) {
+								beta[i][j][v] += alpha[j+1][k2][z]*beta[i][k2][y]*g.t(g.nonTerminals.get(y), g.nonTerminals.get(v), g.nonTerminals.get(z));								
+							}
+						}
+					}
+				}
+			}
+		}		
+//		print3DArr(beta, g);
+		
+		// Termination:
+		for(int i=0; i<l; i++) {
+			float p = 0;
+			for(int v=0; v<m; v++) {
+				// verification of correctness: p is the same for all i
+				p += beta[i][i][v] * g.e(g.nonTerminals.get(v), str.charAt(i));				
+			}
+//			System.out.println("p"+"(i=" + i + ")" + " = " + p);			
+		}
+		
+		return beta;
+	}
+	
+	
 	
 	public static void main(String[] args) {
 		Parser p = new Parser();
@@ -100,6 +161,7 @@ public class Parser {
 //		g.printNonterminals();
 //		g.e("S", 'c');
 //		g.t("VP", "VP", "PP");
-		p.inside(g, "cgt");
+//		p.inside(g, "cgt");
+//		p.outside(g, "cgt");
 	}
 }
