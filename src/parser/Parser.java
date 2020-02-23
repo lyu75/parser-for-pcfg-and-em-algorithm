@@ -26,6 +26,29 @@ public class Parser {
 		}
 	}
 	
+	public void output3DArr(float[][][] arr, String filename) {
+		try {
+			// create file
+			FileWriter output = new FileWriter("C:\\\\Users\\\\nox19\\\\eclipse-workspace\\\\parser for p-cfg and em algorithm\\\\src\\\\parser\\\\"+ filename + ".txt");
+			for(int i=0; i<arr.length; i++) {
+				for(int j=0; j<arr[0].length; j++) {
+					for(int k=0; k<arr[0][0].length; k++) {
+						if(arr[i][j][k] == 0.0) {
+							output.write(0 + " ");
+						}else {
+							output.write(arr[i][j][k]+ " ");							
+						}
+					}
+					output.write("\n");
+				}
+				output.write("\n\n");
+			}
+			output.close();
+		}catch(IOException e) {
+			System.out.println("IOException");
+		}
+	}
+	
 	// takes a .txt file that represents a grammar, parses it and returns a CFG instance;
 	// REMINDER: the file path needs to be a complete file path:
 	// for example: "C:\\Users\\nox19\\eclipse-workspace\\parser\\src\\parser\\test.txt"
@@ -92,6 +115,7 @@ public class Parser {
 		}
 		
 //		print3DArr(alpha, g);
+		output3DArr(alpha, "alpha");
 		return alpha;
 	}
 	
@@ -147,6 +171,7 @@ public class Parser {
 //			System.out.println("p"+"(i=" + i + ")" + " = " + p);			
 		}
 		
+		output3DArr(beta, "beta");
 		return beta;
 	}
 	
@@ -156,12 +181,7 @@ public class Parser {
 		Parser p = new Parser();
 		CFG g = new CFG();
 		g = p.initG("C:\\Users\\nox19\\eclipse-workspace\\parser for p-cfg and em algorithm\\src\\parser\\test.txt");
-//		g.printProductionsT();
-//		g.printProductionsN();
-//		g.printNonterminals();
-//		g.e("S", 'c');
-//		g.t("VP", "VP", "PP");
-//		p.inside(g, "cgt");
-//		p.outside(g, "cgt");
+		p.inside(g, "cgt");
+		p.outside(g, "cgt");
 	}
 }
