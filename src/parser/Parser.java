@@ -179,8 +179,7 @@ public class Parser {
 	
 	public static void main(String[] args) {
 		Parser p = new Parser();
-		CFG g = new CFG();
-		g = p.initG("C:\\Users\\nox19\\eclipse-workspace\\parser for p-cfg and em algorithm\\src\\parser\\test.txt");
+		CFG g = new CFG("C:\\Users\\nox19\\eclipse-workspace\\parser for p-cfg and em algorithm\\src\\parser\\test.txt");
 		p.inside(g, "cgt");
 		p.outside(g, "cgt");
 	}
