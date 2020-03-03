@@ -14,10 +14,10 @@ public class CFG {
 	HashMap<String, ArrayList<ProductionN>> productionsN = new HashMap<String, ArrayList<ProductionN>>();
 	ArrayList<String> nonTerminals = new ArrayList<String>();
 
-	
-	// default constructor 
+	// default constructor (needed for the parser class temporarily)
 	CFG(){}
-
+	
+	// constructor 
 	CFG(String filePath){
 		initG(filePath);
 	}
@@ -46,6 +46,7 @@ public class CFG {
 		}		
 	}
 	
+	// and a production that produces a terminal character to the hashmap of production rules
 	public void addToProductionsT(String l, String r, float p) {
 		if(!productionsT.containsKey(l)) {
 			productionsT.put(l, new ArrayList<ProductionT>());
@@ -53,6 +54,8 @@ public class CFG {
 		productionsT.get(l).add(new ProductionT(l, r, p));
 		addNonTerminal(l);
 	}
+	
+	// add a production that produces two non-terminals to the hashmap of productions rules 
 	public void addToProductionsN(String l, String r1, String r2, float p) {
 		if(!productionsN.containsKey(l)) {
 			productionsN.put(l, new ArrayList<ProductionN>());
@@ -76,6 +79,7 @@ public class CFG {
 		return i;
 	}
 	
+	// print production rules that produce a terminal character
 	public void printProductionsT() {
 		Set<Map.Entry<String, ArrayList<ProductionT>>> pts = productionsT.entrySet();
 		Iterator<Map.Entry<String, ArrayList<ProductionT>>> ptsIterator = pts.iterator();
@@ -87,6 +91,8 @@ public class CFG {
 			}
 		}
 	}
+	
+	// print production rules that produce two non-terminals
 	public void printProductionsN() {
 		Set<Map.Entry<String, ArrayList<ProductionN>>> pns = productionsN.entrySet();
 		Iterator<Map.Entry<String, ArrayList<ProductionN>>> pnsIterator = pns.iterator();
@@ -99,6 +105,7 @@ public class CFG {
 		}
 	}
 	
+	// print a list of all the non-terminals 
 	public void printNonterminals() {
 		for(int i=0; i<nonTerminals.size(); i++) {
 			System.out.print(nonTerminals.get(i)+ " ");
