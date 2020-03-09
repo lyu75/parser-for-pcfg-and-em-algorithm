@@ -99,22 +99,12 @@ public class Parser {
 						for(int z=0; z<m; z++) {
 							for(int k=i; k<=j-1; k++) {
 								alpha[i][j][v] += alpha[i][k][y] * alpha[k+1][j][z] * g.t(g.nonTerminals.get(v), g.nonTerminals.get(y), g.nonTerminals.get(z));
-								
-//								if(alpha[i][k][y]!=0 || alpha[k+1][j][z]!=0 || g.t(g.nonTerminals.get(v), g.nonTerminals.get(y), g.nonTerminals.get(z))!=0) {
-//									System.out.printf("%3d %3d %3s %10.5f %n", i, k, g.nonTerminals.get(y), alpha[i][k][y]);
-//									System.out.printf("%3d %3d %3s %10.5f %n", k+1, j, g.nonTerminals.get(z), alpha[k+1][j][z]);
-//									System.out.printf("%3d %3d %3s %10.5f %n", v, y, z, g.t(g.nonTerminals.get(v), g.nonTerminals.get(y), g.nonTerminals.get(z)));
-//									System.out.printf("%3d %3d %3s %10.5f %n", i, j, g.nonTerminals.get(v), alpha[i][j][v]);
-//									System.out.println("----------------------------");									
-//								}
 							}
 						}
 					}
 				}
 			}
 		}
-		
-//		print3DArr(alpha, g);
 		output3DArr(alpha, "alpha");
 		return alpha;
 	}
@@ -134,7 +124,7 @@ public class Parser {
 			}
 		}
 
-		// interation:
+		// iteration:
 		for(int i=0; i<l; i++) {
 			for(int j=l-1; j>=i; j--) {
 				for(int v=0; v<m; v++) {
@@ -159,8 +149,6 @@ public class Parser {
 				}
 			}
 		}		
-//		print3DArr(beta, g);
-		
 		// Termination:
 		for(int i=0; i<l; i++) {
 			float p = 0;
@@ -168,19 +156,67 @@ public class Parser {
 				// verification of correctness: p is the same for all i
 				p += beta[i][i][v] * g.e(g.nonTerminals.get(v), str.charAt(i));				
 			}
-//			System.out.println("p"+"(i=" + i + ")" + " = " + p);			
-		}
-		
+		}		
 		output3DArr(beta, "beta");
 		return beta;
 	}
 	
 	
+	/*
+	 * compareRules function compares the production rules in CFG instances g1 and g2
+	 * g1 and g2 have the same set of production rules, but different probabilities
+	 * and so each rule in g1 has a corresponding rule in g2 with a different probability
+	 * if the difference between probabilities of EVERY two corresponding rules in g1 and g2 is smaller than the threshold, compareRules returns true. Otherwise, it returns false
+	 * assume that rules in g1 and g2 have the same order 
+	 */
+	public boolean compareRules(float threshold, CFG g1, CFG g2) {
+		// an arraylist of nonterminals 
+		ArrayList<String> nts = g1.nonTerminals;
+		
+		//loop through all nonterminals 
+		for(int i=0; i<nts.size(); i++) {
+			String nt = nts.get(i);
+			
+			//get production rules with nonterminal nt on the left hand side in g1 and g2 
+			ArrayList<ProductionT> pts1 = g1.productionsT.get(nt);
+			ArrayList<ProductionN> pns1 = g1.productionsN.get(nt);
+			
+			ArrayList<ProductionT> pts2 = g2.productionsT.get(nt);
+			ArrayList<ProductionN> pns2 = g2.productionsN.get(nt);
+						
+			//we assumed production rules in g1 and g2 have the same order
+			//since g1 and g2 have the same set of rules, pts1 and pts2, pns1 and pns2 have the same size
+			//now we compare the probabilities between each pair of corresponding rules in g1 and g2
+			if(pts1!=null) {
+				// pts1 == null means the nonterminal does not produce any terminal
+				for(int j=0; j<pts1.size(); j++) {
+					ProductionT p1 = pts1.get(j);
+					ProductionT p2 = pts2.get(j);
+					if(p1.p - p2.p > threshold) {
+						return false;
+					}
+				}				
+			}
+			if(pns1!=null) {
+				// pns1 == null means the nonterminal does not produce any pair of nonterminals
+				for(int j=0; j<pns1.size(); j++) {
+					ProductionN p1 = pns1.get(j);
+					ProductionN p2 = pns2.get(j);				
+					if(p1.p - p2.p > threshold) {
+						return false;
+					}
+				}				
+			}
+		}
+		
+		// if the difference between each pair of production rules probabilities in g1 and g2 is smaller than the threshold, return true 
+		return true;
+	}
 	
 	public static void main(String[] args) {
 		Parser p = new Parser();
-		CFG g = new CFG("C:\\Users\\nox19\\eclipse-workspace\\parser for p-cfg and em algorithm\\src\\parser\\test.txt");
-		p.inside(g, "cgt");
-		p.outside(g, "cgt");
+		CFG g1 = p.initG("C:\\Users\\nox19\\eclipse-workspace\\parser for p-cfg and em algorithm\\src\\parser\\test.txt");
+		CFG g2 = p.initG("C:\\Users\\nox19\\eclipse-workspace\\parser for p-cfg and em algorithm\\src\\parser\\test2.txt");
+		System.out.println(p.compareRules((float)(0.05), g1, g2));
 	}
 }
