@@ -8,7 +8,7 @@ public class Parser {
 	// print an array of strings
 	public static void print(String[] strs) {
 		for (int i=0;i<strs.length;i++) {
-			System.out.print(strs[i]+", ");
+			System.out.print(strs[i]+" ");
 		}
 		System.out.println();
 	}
@@ -18,9 +18,9 @@ public class Parser {
 		for(int i=0; i<f.length;i++) {
 			for(int j=0; j<f[0].length;j++) {
 				for(int k=0; k<f[0][0].length; k++) {
-					if(f[i][j][k] != 0) {
+//					if(f[i][j][k] != 0) {
 						System.out.printf("%3d %3d %3s %10.5f %n", i, j, g.nonTerminals.get(k), f[i][j][k]);						
-					}
+//					}
 				}
 			}
 		}
@@ -163,17 +163,22 @@ public class Parser {
 	
 	
 	/*
-	 * compareRules function compares the production rules in CFG instances g1 and g2
+	 * CFGConverge function compares the production rules in CFG instances g1 and g2
 	 * g1 and g2 have the same set of production rules, but different probabilities
 	 * and so each rule in g1 has a corresponding rule in g2 with a different probability
 	 * if the difference between probabilities of EVERY two corresponding rules in g1 and g2 is smaller than the threshold, compareRules returns true. Otherwise, it returns false
 	 * assume that rules in g1 and g2 have the same order 
 	 */
-	public boolean compareRules(float threshold, CFG g1, CFG g2) {
+	public boolean CFGConverge(float threshold, CFG g1, CFG g2) {
 		// an arraylist of nonterminals 
 		ArrayList<String> nts = g1.nonTerminals;
+		ArrayList<String> nts2 = g2.nonTerminals;
 		
-		//loop through all nonterminals 
+		if(nts.size() != nts2.size()) {
+			return false;
+		}
+		
+		//loop through all nonterminals
 		for(int i=0; i<nts.size(); i++) {
 			String nt = nts.get(i);
 			
@@ -192,6 +197,11 @@ public class Parser {
 				for(int j=0; j<pts1.size(); j++) {
 					ProductionT p1 = pts1.get(j);
 					ProductionT p2 = pts2.get(j);
+					
+					System.out.println(p1.left + " " + p1.right + " " + p1.p);
+					System.out.println(p2.left + " " + p2.right + " " + p2.p);
+					
+					
 					if(p1.p - p2.p > threshold) {
 						return false;
 					}
@@ -202,21 +212,381 @@ public class Parser {
 				for(int j=0; j<pns1.size(); j++) {
 					ProductionN p1 = pns1.get(j);
 					ProductionN p2 = pns2.get(j);				
+
+					System.out.println(p1.left + " " + p1.right1 + " " + p1.right2 + " " + p1.p);
+					System.out.println(p2.left + " " + p2.right1 + " " + p2.right2 + " " + p2.p);
+
+					
 					if(p1.p - p2.p > threshold) {
 						return false;
 					}
 				}				
 			}
 		}
-		
 		// if the difference between each pair of production rules probabilities in g1 and g2 is smaller than the threshold, return true 
 		return true;
 	}
+	 
+	
+	// the CYK algorithm
+	public float[][][] cyk(CFG g, String str){
+		int l = str.length();
+		int m = g.nonTerminals.size();
+		float[][][] gamma = new float[l][l][m];
+		
+		// initialization:
+		for(int i=0; i<l; i++) {
+			for(int j=0; j<l; j++) {
+				for(int k=0; k<m; k++) {
+					//initialize all elements to -inf
+					gamma[i][j][k] = Float.NEGATIVE_INFINITY;
+				}
+			}
+		}
+		for(int i=0; i<l; i++) {
+			for(int v=0; v<m; v++) {
+				gamma[i][i][v] = (float)Math.log10(g.e(g.nonTerminals.get(v), str.charAt(i)));
+			}
+		}
+		
+		// iteration:
+		for(int i=l-2; i>=0; i--) {
+			for(int j=i+1; j<l; j++) {
+				for(int v=0; v<m; v++) {
+
+					for(int y=0; y<m; y++) {
+						for(int z=0; z<m; z++) {
+							for(int k=i; k<=j-1; k++) {
+								if(gamma[i][k][y]!=Float.NEGATIVE_INFINITY && gamma[k+1][j][z]!=Float.NEGATIVE_INFINITY && g.t(g.nonTerminals.get(v), g.nonTerminals.get(y), g.nonTerminals.get(z))!=0) {
+									float newGamma = gamma[i][k][y] + gamma[k+1][j][z] + (float)Math.log10(g.t(g.nonTerminals.get(v), g.nonTerminals.get(y), g.nonTerminals.get(z)));
+									if(newGamma > gamma[i][j][v]) {
+										gamma[i][j][v] = newGamma;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+				
+		// termination log(P(str, optimalParseTree)) = gamma(0, l-1, 0(S))
+		System.out.println("P(" + str + ", optimalParseTree) = "+ Math.pow(10, gamma[0][l-1][0]));
+		return gamma;
+	}
+	
+	
+	/*
+	 * a helper function that generates terminal production rules given a list of probabilities of generating terminal characters (A, C, T, G)
+	 * terminal production rules are output to console
+	 */
+	public void buildTerminalProductions(String fileTerminalProbabilities) {
+		try(BufferedReader reader = new BufferedReader(new FileReader(
+				fileTerminalProbabilities))){
+			String line = reader.readLine();
+
+			HashMap<Integer, String> chars = new HashMap<Integer, String>();
+			chars.put(0, "a");
+			chars.put(1, "c");
+			chars.put(2, "g");
+			chars.put(3, "t");
+			
+			
+			for(int i=0; i<14; i++) {
+				String[] ps = line.split("(\\s\\|?\\s?)");
+				if(i>0) {
+					for(int j=0; j<ps.length; j++) {
+						System.out.println("P"+i+" | "+ chars.get(j) + " "+ ps[j]);
+					}
+				}
+				line = reader.readLine();					
+			}
+			reader.close();			
+		} catch (FileNotFoundException e) {
+			System.out.println("file not found");
+		} catch (IOException e) {
+			System.out.println("IOexception");
+		}		
+	}
+	
+	// parameter re-estimation by expectation maximization using inside var alpha and outside var beta
+	public void EM(CFG g, String[] strs) {
+		CFG oldG = new CFG();
+		
+		/*
+		 * Hashmap alpha and beta:
+		 * alpha: 
+		 * 		string -> float[][][]
+		 * betea:
+		 * 		string -> float[][][]
+		 * 
+		 * while not converged:
+		 * 		for each production rule:
+		 * 			intialize c(v)Sum, c(v->yz)Sum or c(v->a)Sum
+		 * 			for each string input: 
+		 * 				get alpha; get beta
+		 * 				calculate c(v) and c(v -> yz) or c(v -> a); add each to its corresponding sum
+		 * 			end for 
+		 * 			compute tHat or eHat from the cSums
+		 * 			update probability for the production rule
+		 * 		end for
+		 * end while 
+		 * 			
+		 */
+		
+		
+		// already implemented 
+		/*
+		 * hashMap for productionTs and productionNs: 
+		 * productionT -> c(v->a)Sum 
+		 * productionN -> c(v->yz)Sum
+		 * 
+		 * hashMap for nonTerminals: 
+		 * v -> c(v)Sum
+		 * 
+		 * while not converged: 
+		 * 		for each string:
+		 * 			calculate alpha, beta
+		 * 			for each nonTerminal v: 
+		 * 				calculate c(v)
+		 * 				c(v)Sum += c(v)
+		 *			end for 
+		 *			for each productionT:
+		 *				calculate c(v->a)
+		 *				c(v->a)Sum += c(v->a)
+		 *			end for 
+		 *			for each productionN:
+		 *				calculate c(v->yz)
+		 *				c(v->yz)Sum += c(v->yz)
+		 *			end for 
+		 * 		end for
+		 * 		for each productionT (v->a):
+		 * 			update probability with c(v->a)Sum/c(v)
+		 * 		end for 
+		 * 		for each productionN (v->yz):
+		 * 			update probability with c(y->yz)Sum/c(v)
+		 * 		end for
+		 * end while 
+		 */	
+		
+				
+		/*
+		 * while not converged:
+		 * 		intialize c(v)Sum, c(v->yz)Sum or c(v->a)Sum
+		 * 		for each input string:
+		 * 			compute alpha and beta
+		 * 			for each production rule:
+		 * 				compute c(v), cvyz, cva; add them to corresponding sums
+		 * 			end for
+		 * 		end for
+		 * 		compute eHat, tHat; update production rule and grammar
+		 * end while
+		 * 			
+		 */
+		
+		
+		// current version: 
+		/*
+		 * get alpha, beta for input string
+		 * while not converged: 
+		 * 		for each production rule:
+		 * 			calculate c(v), c(v->yz) or c(v->a)
+		 * 			calculate tHat, eHat; update probability 
+		 * 		end for
+		 * end while  
+		 * 			
+		 */
+		
+		
+		// productionT -> c(v->a)Sum 
+		HashMap<ProductionT, Float> pts = new HashMap<ProductionT, Float>();
+		// productionN -> c(v->yz)Sum
+		HashMap<ProductionN, Float> pns = new HashMap<ProductionN, Float>();
+		// v -> c(v)Sum
+		HashMap<String, Float> vs = new HashMap<String, Float>();
+
+		// initialize the hashmaps:
+		// loop through all productions via each nonTerminal
+		for(int v=0; v<g.nonTerminals.size(); v++) {
+			String nt = g.nonTerminals.get(v);
+			vs.put(nt, 0f);
+			
+			// get all ProductionT instances associated with the current nonTerminal:
+			if(g.productionsT.containsKey(nt)) {
+				ArrayList<ProductionT> productionsVA = g.productionsT.get(nt);					
+				for(int i=0; i<productionsVA.size(); i++) {
+					pts.put(productionsVA.get(i), 0f);						
+				}
+			}
+			// get all ProductionN instances associated with the current nonTerminal:
+			if(g.productionsN.containsKey(nt)) {
+				ArrayList<ProductionN> productionsVYZ = g.productionsN.get(nt);
+				for(int i=0; i<productionsVYZ.size(); i++) {
+					pns.put(productionsVYZ.get(i), 0f);
+				}				
+			}
+		}			
+
+		
+		int count = 0;
+		while(!CFGConverge(0.00001f, g, oldG)) {
+			count ++;
+			
+			// loop through all strings in strs:
+			for(int s=0;s<strs.length;s++) {
+				float[][][] alpha = inside(g, strs[s]);
+				float[][][] beta = outside(g, strs[s]);
+				int l = strs[s].length();
+				
+				// for each nonTerminal v:
+				for(int v=0;v<g.nonTerminals.size();v++) {
+					String nt = g.nonTerminals.get(v);
+					// calculate c(v)
+					float cv = getCV(g, l, g.nonTerminals.get(v), v, alpha, beta);
+					// add c(v) to c(v)Sum
+					float cvSum = vs.get(nt) + cv;
+					vs.put(nt, cvSum);
+				}
+				
+				
+				// for each production rule: 
+				for(int v=0; v<g.nonTerminals.size(); v++) {
+					String nt = g.nonTerminals.get(v);
+					// get all ProductionT instances associated with the current nonTerminal:
+					if(g.productionsT.containsKey(nt)) {
+						ArrayList<ProductionT> productionsVA = g.productionsT.get(nt);					
+						for(int i=0; i<productionsVA.size(); i++) {
+							ProductionT pt = productionsVA.get(i);
+							// calculate c(v->a)
+							float cva = getCVA(g, strs[s], l, pt, alpha, beta);
+							// add c(v->a) to c(v->a)Sum 
+							float cvaSum = pts.get(pt) + cva;
+							pts.put(pt, cvaSum);
+						}
+					}
+					// get all ProductionN instances associated with the current nonTerminal:
+					if(g.productionsN.containsKey(nt)) {
+						ArrayList<ProductionN> productionsVYZ = g.productionsN.get(nt);
+						for(int i=0; i<productionsVYZ.size(); i++) {
+							ProductionN pn = productionsVYZ.get(i);
+							// calculate c(v->yz)
+							float cvyz = getCVYZ(g, l, pn, alpha, beta);
+							// add c(v->a) to c(v->yz)Sum 
+							float cvyzSum = pns.get(pn) + cvyz;
+							pns.put(pn, cvyzSum);
+						}				
+					}
+				}			
+			}
+			
+			// for each production rule, compute a new probability (either tHat or eHat)
+			// loop through all productions via each nonTerminal
+			oldG = g;
+			
+			System.out.println("comparison1: ");
+			oldG.printProductionsN();
+			oldG.printProductionsT();
+			
+			g.printProductionsN();
+			g.printProductionsT();
+			
+			for(int v=0; v<g.nonTerminals.size(); v++) {
+				String nt = g.nonTerminals.get(v);
+				// get all ProductionT instances associated with the current nonTerminal:
+				if(g.productionsT.containsKey(nt)) {
+					ArrayList<ProductionT> productionsVA = g.productionsT.get(nt);					
+					for(int i=0; i<productionsVA.size(); i++) {
+						ProductionT pt = productionsVA.get(i);
+						g.updateProbability(pt.left, pt.right, (float)(pts.get(pt)));
+					}
+				}
+				// get all ProductionN instances associated with the current nonTerminal:
+				if(g.productionsN.containsKey(nt)) {
+					ArrayList<ProductionN> productionsVYZ = g.productionsN.get(nt);
+					for(int i=0; i<productionsVYZ.size(); i++) {
+						ProductionN pn = productionsVYZ.get(i);
+						g.updateProbability(pn.left, pn.right1, pn.right2, (float)(pns.get(pn)));
+					}				
+				}
+			}
+			
+			System.out.println("comparison2: ");
+			oldG.printProductionsN();
+			oldG.printProductionsT();
+			g.printProductionsN();
+			g.printProductionsT();
+		}
+	}
+	
+		
+	// calculate the expected number of times a production rule v->a is used
+	private float getCVA(CFG g, String str, int l, ProductionT pt, float[][][] alpha, float[][][] beta) {
+		/*
+		 * the new probability for production rule v -> a
+		 * e_hat(a) = c(v -> a)/c(v)
+		 * 
+		 * c(v -> a) = (1/P(x|theta)) * (SUM i | str[i] = a)beta(i, i, v)e(v, a)
+		 */
+		//get c(v->a)
+		String a = pt.right;
+		int v = g.indexOf(pt.left);
+		float cva = 0;
+		for(int i=0; i<l; i++) {
+			if(Character.toString(str.charAt(i)).equals(a)) {
+				cva += beta[i][i][v]*g.e(pt.left, str.charAt(i));
+			}
+		}
+		return cva;	
+	}
+		
+		
+	// calculate expected number of times a production rule v->yz is used
+	private float getCVYZ(CFG g, int l, ProductionN pn, float[][][] alpha, float[][][] beta) {
+		/*
+		 * c(v -> yz) = (1/P(x|theta) * (SUM i from 1 to L-1)(SUM j from i+1 to L)(SUM k from i to j-1) beta(i, j, v)alpha(i, k, y)alpha(k+1, j, z)t(v, y, z)
+		 *
+		 * the new probability for production rule v -> yz: 
+		 * t_hat(v, y, z) = c(v -> yz)/c(v)
+		 */
+		float cvyz = 0;
+		int v = g.indexOf(pn.left);
+		int y = g.indexOf(pn.right1);
+		int z = g.indexOf(pn.right2);
+		for(int i=0; i<l-2; i++) {
+			for(int j=i+1; j<l; j++) {
+				for(int k=i; k<=j-1; k++) {
+					cvyz += beta[i][j][v]*alpha[i][k][y]*alpha[k+1][j][z]*g.t(pn.left, pn.right1, pn.right2);
+				}
+			}
+		}
+		// cvyz = cvyz/(1/alpha[0][l-1][0]);
+		return cvyz;
+	}
+		
+		
+	// calculate expected number of times a state v is used: 			
+	private float getCV(CFG g, int l, String v, int vIndex, float[][][] alpha, float[][][] beta) {
+		/* 	
+		 * c(v) = (1/(P(x|theta)) * (SUM i from 1 to L)(SUM j from i to L)alpha(i, j, v)beta(i, j, v)
+		 * 
+		 * P(x|theta) = alpha(0, L-1, 0);
+		*/ 	
+		// get c(v) 
+		float cv = 0;
+		for(int i=0; i<l; i++) {
+			for(int j=i; j<l; j++) {
+				cv += alpha[i][j][vIndex]*beta[i][j][vIndex];
+			}
+		}
+		// cv = cv/(1/alpha[0][l-1][0]);
+		return cv;
+	}
+		
+	
+	
 	
 	public static void main(String[] args) {
 		Parser p = new Parser();
-		CFG g1 = p.initG("C:\\Users\\nox19\\eclipse-workspace\\parser for p-cfg and em algorithm\\src\\parser\\test.txt");
-		CFG g2 = p.initG("C:\\Users\\nox19\\eclipse-workspace\\parser for p-cfg and em algorithm\\src\\parser\\test2.txt");
-		System.out.println(p.compareRules((float)(0.05), g1, g2));
+		CFG g2 = p.initG("C:\\Users\\nox19\\eclipse-workspace\\parser for p-cfg and em algorithm\\src\\parser\\test2.txt");		
 	}
 }

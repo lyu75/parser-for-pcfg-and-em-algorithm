@@ -1,9 +1,8 @@
-S | NP VP 1.0
-PP | P NP 1.0
-VP | V NP 0.45
-VP | VP PP 0.55
-P | a 1.0
-V | g 1.0
-NP | NP PP 0.20
-NP | t 0.5
-NP | c 0.30
+S | A B 0.5
+S | C D 0.5
+A | a 1.0
+B | c 0.5
+B | d 0.5
+C | x 0.5
+C | y 0.5
+D | d 1.0
