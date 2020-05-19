@@ -12,6 +12,21 @@ public class Parser {
 		}
 		System.out.println();
 	}
+	// print an arraylist of strings
+	public static void printArrayList(ArrayList<String> strs) {
+		for(int i=0; i<strs.size(); i++) {
+			System.out.println(strs.get(i));
+		}
+	}
+	// convert an arraylist of strings to an array of strings
+	public static String[] toArray(ArrayList<String> strs) {
+		String[] output = new String[strs.size()];
+		for(int i=0;i<strs.size(); i++) {
+			output[i] = strs.get(i);
+		}
+		return output;
+	}
+	
 	
 	// print only the non-zero terms in the 3D array
 	public static void print3DArr(float[][][] f, CFG g) {
@@ -48,6 +63,28 @@ public class Parser {
 			System.out.println("IOException");
 		}
 	}
+	
+	
+	// takes a .txt file that contains a list of string inputs 
+	// return an arraylist of strings read from the input file 
+	public ArrayList<String> getStringInput(String filePath) {
+		ArrayList<String> inputs = new ArrayList<String>();
+		try(BufferedReader reader = new BufferedReader(new FileReader(filePath))){
+			String line = reader.readLine();
+			while(line != null) {
+				inputs.add(line);
+				line = reader.readLine();
+			}
+			reader.close();
+		}catch(FileNotFoundException e){
+			System.out.println("file not found");
+		}catch(IOException e) {
+			System.out.println("IOException");
+		}
+		return inputs;
+	}
+	
+	
 	
 	// takes a .txt file that represents a grammar, parses it and returns a CFG instance;
 	// REMINDER: the file path needs to be a complete file path:
@@ -311,7 +348,7 @@ public class Parser {
 	
 	// parameter re-estimation by expectation maximization using inside var alpha and outside var beta
 	public void EM(CFG g, String[] strs) {
-		CFG oldG = new CFG();
+		CFG oldG = g.clone();
 		
 		/*
 		 * Hashmap alpha and beta:
@@ -369,34 +406,6 @@ public class Parser {
 		 * end while 
 		 */	
 		
-				
-		/*
-		 * while not converged:
-		 * 		intialize c(v)Sum, c(v->yz)Sum or c(v->a)Sum
-		 * 		for each input string:
-		 * 			compute alpha and beta
-		 * 			for each production rule:
-		 * 				compute c(v), cvyz, cva; add them to corresponding sums
-		 * 			end for
-		 * 		end for
-		 * 		compute eHat, tHat; update production rule and grammar
-		 * end while
-		 * 			
-		 */
-		
-		
-		// current version: 
-		/*
-		 * get alpha, beta for input string
-		 * while not converged: 
-		 * 		for each production rule:
-		 * 			calculate c(v), c(v->yz) or c(v->a)
-		 * 			calculate tHat, eHat; update probability 
-		 * 		end for
-		 * end while  
-		 * 			
-		 */
-		
 		
 		// productionT -> c(v->a)Sum 
 		HashMap<ProductionT, Float> pts = new HashMap<ProductionT, Float>();
@@ -426,7 +435,6 @@ public class Parser {
 				}				
 			}
 		}			
-
 		
 		int count = 0;
 		while(!CFGConverge(0.00001f, g, oldG)) {
@@ -459,7 +467,7 @@ public class Parser {
 							ProductionT pt = productionsVA.get(i);
 							// calculate c(v->a)
 							float cva = getCVA(g, strs[s], l, pt, alpha, beta);
-							// add c(v->a) to c(v->a)Sum 
+							// add c(v->a) to c(v->a)Sum
 							float cvaSum = pts.get(pt) + cva;
 							pts.put(pt, cvaSum);
 						}
@@ -587,6 +595,9 @@ public class Parser {
 	
 	public static void main(String[] args) {
 		Parser p = new Parser();
-		CFG g2 = p.initG("C:\\Users\\nox19\\eclipse-workspace\\parser for p-cfg and em algorithm\\src\\parser\\test2.txt");		
+		CFG g = p.initG("C:\\Users\\nox19\\eclipse-workspace\\parser for p-cfg and em algorithm\\src\\parser\\test3");		
+		ArrayList<String> inputs = p.getStringInput("C:\\Users\\nox19\\eclipse-workspace\\parser for p-cfg and em algorithm\\src\\parser\\testInput");
+		String[] inputsArr = Parser.toArray(inputs);
+		p.EM(g, inputsArr);
 	}
 }

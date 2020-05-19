@@ -179,4 +179,44 @@ public class CFG {
 		}
 			return -1;
 	}
+	
+	// clone a deep copy of a CFG instance
+	public CFG clone() {
+		CFG copyG = new CFG();
+		
+		// make deep copies of productionsT and productionsN
+		// loop through all productions via each nonTerminal
+		for(int v=0; v<nonTerminals.size(); v++) {
+			// copy the arraylist of nonterminals 
+
+			String nt = nonTerminals.get(v);
+			copyG.nonTerminals.add(nt);
+			// get all ProductionT instances associated with the current nonTerminal:
+			if(productionsT.containsKey(nt)) {
+				ArrayList<ProductionT> productionsVA = productionsT.get(nt);
+				ArrayList<ProductionT> newProductionsT = new ArrayList<ProductionT>();
+				for(int i=0; i<productionsVA.size(); i++) {
+					ProductionT oldProductionT = productionsVA.get(i);
+					// create a new productionT instance with the same content:
+					ProductionT newProductionT = new ProductionT(oldProductionT.left, oldProductionT.right, oldProductionT.p);
+					newProductionsT.add(newProductionT);
+				}
+				copyG.productionsT.put(nt, newProductionsT);
+			}
+			// get all ProductionN instances associated with the current nonTerminal:
+			if(productionsN.containsKey(nt)) {
+				ArrayList<ProductionN> productionsVYZ = productionsN.get(nt);
+				ArrayList<ProductionN> newProductionsN = new ArrayList<ProductionN>();
+				for(int i=0; i<productionsVYZ.size(); i++) {
+					ProductionN oldProductionN = productionsVYZ.get(i);
+					// create a new productionT instance with the same content:
+					ProductionN newProductionN = new ProductionN(oldProductionN.left, oldProductionN.right1, oldProductionN.right2, oldProductionN.p);
+					newProductionsN.add(newProductionN);
+				}
+				copyG.productionsN.put(nt, newProductionsN);
+			}
+		}
+		return copyG;
+	}
+	
 }
