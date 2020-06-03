@@ -41,6 +41,7 @@ public class Parser {
 		}
 	}
 	
+	// outputs a 3d array into a text file
 	public void output3DArr(float[][][] arr, String filename) {
 		try {
 			// create file
@@ -235,8 +236,8 @@ public class Parser {
 					ProductionT p1 = pts1.get(j);
 					ProductionT p2 = pts2.get(j);
 					
-					System.out.println(p1.left + " " + p1.right + " " + p1.p);
-					System.out.println(p2.left + " " + p2.right + " " + p2.p);
+//					System.out.println(p1.left + " " + p1.right + " " + p1.p);
+//					System.out.println(p2.left + " " + p2.right + " " + p2.p);
 					
 					
 					if(p1.p - p2.p > threshold) {
@@ -250,8 +251,8 @@ public class Parser {
 					ProductionN p1 = pns1.get(j);
 					ProductionN p2 = pns2.get(j);				
 
-					System.out.println(p1.left + " " + p1.right1 + " " + p1.right2 + " " + p1.p);
-					System.out.println(p2.left + " " + p2.right1 + " " + p2.right2 + " " + p2.p);
+//					System.out.println(p1.left + " " + p1.right1 + " " + p1.right2 + " " + p1.p);
+//					System.out.println(p2.left + " " + p2.right1 + " " + p2.right2 + " " + p2.p);
 
 					
 					if(p1.p - p2.p > threshold) {
@@ -348,7 +349,7 @@ public class Parser {
 	
 	// parameter re-estimation by expectation maximization using inside var alpha and outside var beta
 	public void EM(CFG g, String[] strs) {
-		CFG oldG = g.clone();
+		CFG oldG = new CFG();
 		
 		/*
 		 * Hashmap alpha and beta:
@@ -437,11 +438,20 @@ public class Parser {
 		}			
 		
 		int count = 0;
+		
 		while(!CFGConverge(0.00001f, g, oldG)) {
+			if(count==20) {
+				break;
+			}
+			
+			oldG = g.clone();
+			
 			count ++;
 			
 			// loop through all strings in strs:
 			for(int s=0;s<strs.length;s++) {
+				System.out.println("input: "+strs[s]);
+				
 				float[][][] alpha = inside(g, strs[s]);
 				float[][][] beta = outside(g, strs[s]);
 				int l = strs[s].length();
@@ -451,8 +461,11 @@ public class Parser {
 					String nt = g.nonTerminals.get(v);
 					// calculate c(v)
 					float cv = getCV(g, l, g.nonTerminals.get(v), v, alpha, beta);
+					System.out.println(nt +" "+ cv);					
+					
 					// add c(v) to c(v)Sum
 					float cvSum = vs.get(nt) + cv;
+					System.out.println(nt +" sum "+ cvSum);					
 					vs.put(nt, cvSum);
 				}
 				
@@ -466,9 +479,11 @@ public class Parser {
 						for(int i=0; i<productionsVA.size(); i++) {
 							ProductionT pt = productionsVA.get(i);
 							// calculate c(v->a)
-							float cva = getCVA(g, strs[s], l, pt, alpha, beta);
+							float cva = getCVA(g, strs[s], l, pt, alpha, beta);							
+							System.out.println(pt.left + " " + pt.right + " " + cva);												
 							// add c(v->a) to c(v->a)Sum
 							float cvaSum = pts.get(pt) + cva;
+							System.out.println(pt.left + " " + "sum " + pt.right + " " + cvaSum);					
 							pts.put(pt, cvaSum);
 						}
 					}
@@ -479,33 +494,28 @@ public class Parser {
 							ProductionN pn = productionsVYZ.get(i);
 							// calculate c(v->yz)
 							float cvyz = getCVYZ(g, l, pn, alpha, beta);
+							System.out.println(pn.left + " " + pn.right1 + " " + pn.right2+ " " + cvyz);												
 							// add c(v->a) to c(v->yz)Sum 
 							float cvyzSum = pns.get(pn) + cvyz;
+							System.out.println(pn.left + " " + pn.right1 + " " + pn.right2+ " sum " + cvyzSum);							
 							pns.put(pn, cvyzSum);
-						}				
+						}
 					}
-				}			
+				}
 			}
-			
-			// for each production rule, compute a new probability (either tHat or eHat)
-			// loop through all productions via each nonTerminal
-			oldG = g;
-			
-			System.out.println("comparison1: ");
-			oldG.printProductionsN();
-			oldG.printProductionsT();
-			
-			g.printProductionsN();
-			g.printProductionsT();
 			
 			for(int v=0; v<g.nonTerminals.size(); v++) {
 				String nt = g.nonTerminals.get(v);
+				//get cv
+				float cv = vs.get(nt);
+				
 				// get all ProductionT instances associated with the current nonTerminal:
 				if(g.productionsT.containsKey(nt)) {
 					ArrayList<ProductionT> productionsVA = g.productionsT.get(nt);					
 					for(int i=0; i<productionsVA.size(); i++) {
 						ProductionT pt = productionsVA.get(i);
-						g.updateProbability(pt.left, pt.right, (float)(pts.get(pt)));
+						float eva = pts.get(pt) / cv;
+						g.updateProbability(pt.left, pt.right, eva);
 					}
 				}
 				// get all ProductionN instances associated with the current nonTerminal:
@@ -513,17 +523,24 @@ public class Parser {
 					ArrayList<ProductionN> productionsVYZ = g.productionsN.get(nt);
 					for(int i=0; i<productionsVYZ.size(); i++) {
 						ProductionN pn = productionsVYZ.get(i);
-						g.updateProbability(pn.left, pn.right1, pn.right2, (float)(pns.get(pn)));
-					}				
+						float tvyz = pns.get(pn) / cv;
+						g.updateProbability(pn.left, pn.right1, pn.right2, tvyz);
+					}
 				}
 			}
 			
-			System.out.println("comparison2: ");
+			System.out.println("comparison" + count + ": ");
+			System.out.println("oldG: ");
 			oldG.printProductionsN();
 			oldG.printProductionsT();
+			System.out.println("g: ");
 			g.printProductionsN();
 			g.printProductionsT();
 		}
+		
+		System.out.println("final output grammar: ");
+		g.printProductionsN();
+		g.printProductionsT();		
 	}
 	
 		
@@ -544,6 +561,7 @@ public class Parser {
 				cva += beta[i][i][v]*g.e(pt.left, str.charAt(i));
 			}
 		}
+		cva = cva/(1/alpha[0][l-1][0]);
 		return cva;	
 	}
 		
@@ -560,14 +578,14 @@ public class Parser {
 		int v = g.indexOf(pn.left);
 		int y = g.indexOf(pn.right1);
 		int z = g.indexOf(pn.right2);
-		for(int i=0; i<l-2; i++) {
+		for(int i=0; i<l-1; i++) {
 			for(int j=i+1; j<l; j++) {
 				for(int k=i; k<=j-1; k++) {
 					cvyz += beta[i][j][v]*alpha[i][k][y]*alpha[k+1][j][z]*g.t(pn.left, pn.right1, pn.right2);
 				}
 			}
 		}
-		// cvyz = cvyz/(1/alpha[0][l-1][0]);
+		cvyz = cvyz/(1/alpha[0][l-1][0]);
 		return cvyz;
 	}
 		
@@ -586,11 +604,10 @@ public class Parser {
 				cv += alpha[i][j][vIndex]*beta[i][j][vIndex];
 			}
 		}
-		// cv = cv/(1/alpha[0][l-1][0]);
+		cv = cv/(1/alpha[0][l-1][0]);
 		return cv;
 	}
 		
-	
 	
 	
 	public static void main(String[] args) {
