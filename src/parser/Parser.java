@@ -4,7 +4,7 @@ import java.util.*;
 import java.io.*;
 
 public class Parser {
-	
+		
 	// print an array of strings
 	public static void print(String[] strs) {
 		for (int i=0;i<strs.length;i++) {
@@ -27,7 +27,6 @@ public class Parser {
 		return output;
 	}
 	
-	
 	// print only the non-zero terms in the 3D array
 	public static void print3DArr(float[][][] f, CFG g) {
 		for(int i=0; i<f.length;i++) {
@@ -40,6 +39,42 @@ public class Parser {
 			}
 		}
 	}
+	
+	// outputs a grammar into a text file 
+	// given the name of the output file and a CFG instance	
+	public void outputGrammar(CFG g, String filename) {
+		try {
+			// create file
+			FileWriter fw = new FileWriter("src\\files\\" + filename);
+
+			// loop through all productions via each nonTerminal
+			for(int v=0; v<g.nonTerminals.size(); v++) {
+				String nt = g.nonTerminals.get(v);
+				// get all ProductionT instances associated with the current nonTerminal:
+				if(g.productionsT.containsKey(nt)) {
+					ArrayList<ProductionT> pts = g.productionsT.get(nt);
+					for(int i=0; i<pts.size(); i++) {
+						ProductionT p = pts.get(i);
+						fw.write(p.left + " | " + p.right + " " + p.p + "\n");
+					}
+				}
+				// get all ProductionN instances associated with the current nonTerminal:
+				if(g.productionsN.containsKey(nt)) {
+					ArrayList<ProductionN> pns = g.productionsN.get(nt);
+					for(int i=0; i<pns.size(); i++) {
+						ProductionN p = pns.get(i);
+						fw.write(p.left + " | " + p.right1 + " " + p.right2 + " " + p.p + "\n");						
+					}
+				}
+			}
+			
+			// close the file:
+			fw.close();
+		}catch(Exception e){
+			System.out.println("an error occured");
+		}
+	}
+	
 	
 	// outputs a 3d array into a text file
 	public void output3DArr(float[][][] arr, String filename) {
@@ -147,6 +182,8 @@ public class Parser {
 		return alpha;
 	}
 	
+	// the outside algorithm
+	// returns a 3D array of floats storing all the betae values 
 	public float[][][] outside(CFG g, String str) {
 		int l = str.length();
 		int m = g.nonTerminals.size();
@@ -264,10 +301,10 @@ public class Parser {
 		// if the difference between each pair of production rules probabilities in g1 and g2 is smaller than the threshold, return true 
 		return true;
 	}
-	 
+	
 	
 	// the CYK algorithm
-	public float[][][] cyk(CFG g, String str){
+	public float cyk(CFG g, String str){
 		int l = str.length();
 		int m = g.nonTerminals.size();
 		float[][][] gamma = new float[l][l][m];
@@ -310,45 +347,30 @@ public class Parser {
 				
 		// termination log(P(str, optimalParseTree)) = gamma(0, l-1, 0(S))
 		System.out.println("P(" + str + ", optimalParseTree) = "+ Math.pow(10, gamma[0][l-1][0]));
-		return gamma;
+		return (float)Math.pow(10, gamma[0][l-1][0]);
 	}
-	
 	
 	/*
-	 * a helper function that generates terminal production rules given a list of probabilities of generating terminal characters (A, C, T, G)
-	 * terminal production rules are output to console
+	 * run CKY algorithm given a grammar on a list of string inputs
+	 * outputs a file with each string followed by a probability of getting it from the given grammar
 	 */
-	public void buildTerminalProductions(String fileTerminalProbabilities) {
-		try(BufferedReader reader = new BufferedReader(new FileReader(
-				fileTerminalProbabilities))){
-			String line = reader.readLine();
-
-			HashMap<Integer, String> chars = new HashMap<Integer, String>();
-			chars.put(0, "a");
-			chars.put(1, "c");
-			chars.put(2, "g");
-			chars.put(3, "t");
-			
-			
-			for(int i=0; i<14; i++) {
-				String[] ps = line.split("(\\s\\|?\\s?)");
-				if(i>0) {
-					for(int j=0; j<ps.length; j++) {
-						System.out.println("P"+i+" | "+ chars.get(j) + " "+ ps[j]);
-					}
-				}
-				line = reader.readLine();					
+	public void parse(CFG g, String[] strs, String outputFileName) {
+		try {
+			FileWriter fw = new FileWriter("src\\files\\"+outputFileName);
+			for(int i=0; i<strs.length; i++) {
+				String str = strs[i];
+				float p = cyk(g, str);
+				fw.write(str + " " + p + "\n");
 			}
-			reader.close();			
-		} catch (FileNotFoundException e) {
-			System.out.println("file not found");
-		} catch (IOException e) {
-			System.out.println("IOexception");
-		}		
+			fw.close();
+		}catch (Exception e){
+			System.out.println("an error has occurred");
+		}
 	}
 	
+	
 	// parameter re-estimation by expectation maximization using inside var alpha and outside var beta
-	public void EM(CFG g, String[] strs) {
+	public void EM(CFG g, String[] strs, String outputFileName) {
 		CFG oldG = new CFG();
 		
 		/*
@@ -450,7 +472,9 @@ public class Parser {
 			
 			// loop through all strings in strs:
 			for(int s=0;s<strs.length;s++) {
-				System.out.println("input: "+strs[s]);
+				
+				// printing the progress to console:
+				System.out.println("progress: "+ (float)s/strs.length * 100 + "%");
 				
 				float[][][] alpha = inside(g, strs[s]);
 				float[][][] beta = outside(g, strs[s]);
@@ -461,11 +485,9 @@ public class Parser {
 					String nt = g.nonTerminals.get(v);
 					// calculate c(v)
 					float cv = getCV(g, l, g.nonTerminals.get(v), v, alpha, beta);
-					System.out.println(nt +" "+ cv);					
 					
 					// add c(v) to c(v)Sum
 					float cvSum = vs.get(nt) + cv;
-					System.out.println(nt +" sum "+ cvSum);					
 					vs.put(nt, cvSum);
 				}
 				
@@ -479,11 +501,9 @@ public class Parser {
 						for(int i=0; i<productionsVA.size(); i++) {
 							ProductionT pt = productionsVA.get(i);
 							// calculate c(v->a)
-							float cva = getCVA(g, strs[s], l, pt, alpha, beta);							
-							System.out.println(pt.left + " " + pt.right + " " + cva);												
+							float cva = getCVA(g, strs[s], l, pt, alpha, beta);
 							// add c(v->a) to c(v->a)Sum
 							float cvaSum = pts.get(pt) + cva;
-							System.out.println(pt.left + " " + "sum " + pt.right + " " + cvaSum);					
 							pts.put(pt, cvaSum);
 						}
 					}
@@ -494,10 +514,8 @@ public class Parser {
 							ProductionN pn = productionsVYZ.get(i);
 							// calculate c(v->yz)
 							float cvyz = getCVYZ(g, l, pn, alpha, beta);
-							System.out.println(pn.left + " " + pn.right1 + " " + pn.right2+ " " + cvyz);												
 							// add c(v->a) to c(v->yz)Sum 
 							float cvyzSum = pns.get(pn) + cvyz;
-							System.out.println(pn.left + " " + pn.right1 + " " + pn.right2+ " sum " + cvyzSum);							
 							pns.put(pn, cvyzSum);
 						}
 					}
@@ -540,7 +558,9 @@ public class Parser {
 		
 		System.out.println("final output grammar: ");
 		g.printProductionsN();
-		g.printProductionsT();		
+		g.printProductionsT();
+		
+		outputGrammar(g, outputFileName);
 	}
 	
 		
@@ -561,7 +581,7 @@ public class Parser {
 				cva += beta[i][i][v]*g.e(pt.left, str.charAt(i));
 			}
 		}
-		cva = cva/(1/alpha[0][l-1][0]);
+		cva = cva*(1/alpha[0][l-1][0]);
 		return cva;	
 	}
 		
@@ -585,7 +605,7 @@ public class Parser {
 				}
 			}
 		}
-		cvyz = cvyz/(1/alpha[0][l-1][0]);
+		cvyz = cvyz*(1/alpha[0][l-1][0]);
 		return cvyz;
 	}
 		
@@ -604,17 +624,86 @@ public class Parser {
 				cv += alpha[i][j][vIndex]*beta[i][j][vIndex];
 			}
 		}
-		cv = cv/(1/alpha[0][l-1][0]);
+		cv = cv*(1/alpha[0][l-1][0]);
 		return cv;
 	}
 		
+	/*
+	 * extracts 13 nucleotides starting from GT
+	 */
+	public void cleanRawSeqData(String input, String output) {
+		try{
+			FileWriter fw = new FileWriter(new File(output));
+			BufferedReader reader = new BufferedReader(new FileReader(input));
+			
+			String line = reader.readLine();
+			while(line != null) {
+				System.out.println(line.substring(16, 29));
+				fw.write(line.substring(16, 29).toLowerCase()+"\n");
+				line = reader.readLine();
+			}
+			reader.close();
+			fw.close();
+		}catch(FileNotFoundException e){
+			System.out.println("file not found");
+		}catch(IOException e) {
+			System.out.println("IOException");
+		}
+	}
 	
 	
 	public static void main(String[] args) {
+		
+		
+		// parse the params in args
+		/*
+		 * mode: train (EM) / parse (CYK)
+		 * 
+		 * take: 
+		 * 1. the name of the output file;
+		 * 2. input grammar file 
+		 * 3. input sequences file
+		 * each one is preceeded with an option (grammar/sequences/output)
+		 * 
+		 * test on intron data
+		 * donor (5')
+		 * 
+		 */
+
+		/*
+		 * args params: 
+		 * train or parse, input grammar file, input sequence file, name of output file
+		 * 
+		 */
+		
 		Parser p = new Parser();
-		CFG g = p.initG("C:\\Users\\nox19\\eclipse-workspace\\parser for p-cfg and em algorithm\\src\\parser\\test3");		
-		ArrayList<String> inputs = p.getStringInput("C:\\Users\\nox19\\eclipse-workspace\\parser for p-cfg and em algorithm\\src\\parser\\testInput");
+		
+		if(args.length != 4) {
+			System.out.println("Incorrect number of arguments");
+			return;
+		}
+		
+		// initialize a PCFG from a input text file representing a PCFG in Chomsky normal form
+		String inputGrammarPath = "src\\files\\" + args[1];
+		CFG g = p.initG(inputGrammarPath);
+
+		// initialize a list of string inputs 
+		String inputSeqPath = "src\\files\\" + args[2];
+		ArrayList<String> inputs = p.getStringInput(inputSeqPath);
 		String[] inputsArr = Parser.toArray(inputs);
-		p.EM(g, inputsArr);
+		
+		// output file name
+		String output = args[3];
+		
+		// p.cleanRawSeqData("C:\\Users\\nox19\\eclipse-workspace\\parser for p-cfg and em algorithm\\src\\parser\\U12gtagSeqInputRawData", "C:\\Users\\nox19\\eclipse-workspace\\parser for p-cfg and em algorithm\\src\\parser\\U12gtagSeqInputCleaned");
+		
+		if(args[0].equals("train") || args[0].equals("Train") || args[0].equals("TRAIN")) {			
+			p.EM(g, inputsArr, output);
+		}else if (args[0].equals("parse") || args[0].equals("Parse") || args[0].equals("PARSE")) {
+			p.parse(g, inputsArr, output);
+		}else {
+			System.out.println("Instruction Unclear: Do you want to train a grammar or parse input strings?");
+			return;
+		}
 	}
 }

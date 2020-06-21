@@ -1,0 +1,11 @@
+Users should give the main function 4 arguments (args.length = 4):
+
+args[0] = "train" or "parse"
+	train:
+		the progran will run the EM algorithm to train a PCFG based on a input PCFG and a list of strings
+	parse:
+		given a PCFG and a list of input strings, the program will run the CYK algorithm on every input string with respect to the input grammar and output a file with every string followed by the probability of it being produced by the input PCFG
+		
+args[1] = name of the output file
+args[2] = name of the input grammar file
+args[3] = name of the file containing a list of input strings
