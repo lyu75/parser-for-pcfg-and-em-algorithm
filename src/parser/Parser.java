@@ -344,7 +344,7 @@ public class Parser {
 				}
 			}
 		}
-				
+
 		// termination log(P(str, optimalParseTree)) = gamma(0, l-1, 0(S))
 		System.out.println("P(" + str + ", optimalParseTree) = "+ Math.pow(10, gamma[0][l-1][0]));
 		return (float)Math.pow(10, gamma[0][l-1][0]);
@@ -674,9 +674,11 @@ public class Parser {
 		 * args params: 
 		 * train or parse, input grammar file, input sequence file, name of output file
 		 * 
-		 */
+		 */		
 		
 		Parser p = new Parser();
+//		p.cleanRawSeqData("src\\files\\U12atacSeqInputRawData", "src\\files\\U12atacSeqInputCleaned");
+		
 		
 		if(args.length != 4) {
 			System.out.println("Incorrect number of arguments");
@@ -685,8 +687,8 @@ public class Parser {
 		
 		// initialize a PCFG from a input text file representing a PCFG in Chomsky normal form
 		String inputGrammarPath = "src\\files\\" + args[1];
-		CFG g = p.initG(inputGrammarPath);
-
+		CFG g = p.initG(inputGrammarPath);		
+		
 		// initialize a list of string inputs 
 		String inputSeqPath = "src\\files\\" + args[2];
 		ArrayList<String> inputs = p.getStringInput(inputSeqPath);
@@ -695,7 +697,6 @@ public class Parser {
 		// output file name
 		String output = args[3];
 		
-		// p.cleanRawSeqData("C:\\Users\\nox19\\eclipse-workspace\\parser for p-cfg and em algorithm\\src\\parser\\U12gtagSeqInputRawData", "C:\\Users\\nox19\\eclipse-workspace\\parser for p-cfg and em algorithm\\src\\parser\\U12gtagSeqInputCleaned");
 		
 		if(args[0].equals("train") || args[0].equals("Train") || args[0].equals("TRAIN")) {			
 			p.EM(g, inputsArr, output);
@@ -705,5 +706,13 @@ public class Parser {
 			System.out.println("Instruction Unclear: Do you want to train a grammar or parse input strings?");
 			return;
 		}
+		
+//		try {
+//			FileWriter fw = new FileWriter("src\\testFile.txt");
+//			fw.write("hello");
+//			fw.close();
+//		}catch(Exception e) {
+//			System.out.println("an error has occurred");
+//		}
 	}
 }
