@@ -13,8 +13,9 @@ public class CFG {
 	
 	// productionsN : stores all production rules whose right side are two nonterminals
 	HashMap<String, ArrayList<ProductionN>> productionsN = new HashMap<String, ArrayList<ProductionN>>();
-	ArrayList<String> nonTerminals = new ArrayList<String>();
-
+	public ArrayList<String> nonTerminals = new ArrayList<String>();
+	
+	
 	// default constructor (needed for the parser class temporarily)
 	CFG(){}
 	
@@ -123,7 +124,7 @@ public class CFG {
 				if (pt.right.equals(Character.toString(ch))) {
 					p = pt.p;
 				}
-			}		
+			}
 		}
 		return p;
 	} 
@@ -142,5 +143,80 @@ public class CFG {
 		}
 		return p;
 	}
+	
+	// find and modify the probability of a certain production rule (v -> yz)
+	public void updateProbability(String v, String y, String z, float p) {		
+		ArrayList<ProductionN> pns = productionsN.get(v);
+		if(pns!=null) {
+			for (int i=0; i<pns.size(); i++) {
+				ProductionN pn = pns.get(i);
+				if (pn.right1.equals(y) && pn.right2.equals(z)) {
+					pn.p = p;
+				}
+			}			
+		}		
+	}
+	
+	// find and modify the probability of a certain production rule (v -> c)
+	public void updateProbability(String v, String c, float p) {
+		ArrayList<ProductionT> pts = productionsT.get(v);
+		if(pts != null) {
+			for(int i=0;i<pts.size();i++) {
+				ProductionT pt = pts.get(i);
+				if (pt.right.equals(c)){
+					pt.p = p;
+				}
+			}
+		}
+	}
+	
+	// find the index of a non-terminal v from the arraylist of non-terminals 
+	public int indexOf(String v) {
+		for(int i=0; i<nonTerminals.size(); i++) {
+			if(nonTerminals.get(i).equals(v)) {
+				return i;
+			}
+		}
+			return -1;
+	}
+	
+	// clone a deep copy of a CFG instance
+	public CFG clone() {
+		CFG copyG = new CFG();
+		
+		// make deep copies of productionsT and productionsN
+		// loop through all productions via each nonTerminal
+		for(int v=0; v<nonTerminals.size(); v++) {
+			// copy the arraylist of nonterminals 
 
+			String nt = nonTerminals.get(v);
+			copyG.nonTerminals.add(nt);
+			// get all ProductionT instances associated with the current nonTerminal:
+			if(productionsT.containsKey(nt)) {
+				ArrayList<ProductionT> productionsVA = productionsT.get(nt);
+				ArrayList<ProductionT> newProductionsT = new ArrayList<ProductionT>();
+				for(int i=0; i<productionsVA.size(); i++) {
+					ProductionT oldProductionT = productionsVA.get(i);
+					// create a new productionT instance with the same content:
+					ProductionT newProductionT = new ProductionT(oldProductionT.left, oldProductionT.right, oldProductionT.p);
+					newProductionsT.add(newProductionT);
+				}
+				copyG.productionsT.put(nt, newProductionsT);
+			}
+			// get all ProductionN instances associated with the current nonTerminal:
+			if(productionsN.containsKey(nt)) {
+				ArrayList<ProductionN> productionsVYZ = productionsN.get(nt);
+				ArrayList<ProductionN> newProductionsN = new ArrayList<ProductionN>();
+				for(int i=0; i<productionsVYZ.size(); i++) {
+					ProductionN oldProductionN = productionsVYZ.get(i);
+					// create a new productionT instance with the same content:
+					ProductionN newProductionN = new ProductionN(oldProductionN.left, oldProductionN.right1, oldProductionN.right2, oldProductionN.p);
+					newProductionsN.add(newProductionN);
+				}
+				copyG.productionsN.put(nt, newProductionsN);
+			}
+		}
+		return copyG;
+	}
+		
 }
